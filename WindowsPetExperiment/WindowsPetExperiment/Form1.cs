@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace WindowsPetExperiment
 {
     public partial class Form1 : Form
@@ -15,34 +17,34 @@ namespace WindowsPetExperiment
             InitializeComponent();
         }
 
-        private void MoveRight()
+        private void GoToLocation(Point location)
         {
             state = "moving";
-            direction = 1;
 
-            for (int i = 0; i < 300; i++)
+            direction = Location.X > location.X ? -1 : 1;
+
+            int speed = 5;
+
+            int horizontalDistance = location.X - Location.X;
+            int verticalDistance = location.Y - Location.Y;
+
+            int totalDistance = (int)Math.Sqrt(Math.Pow(horizontalDistance, 2) + Math.Pow(verticalDistance, 2));
+
+            double stepCount = (double)totalDistance / speed;
+
+            double horizontalStepDistance = (double)(location.X - Location.X) / stepCount;
+            double verticalStepDistance = (double)(location.Y - Location.Y) / stepCount;
+
+            Point startLocation = Location;
+            for (int i = 1; i <= stepCount; i++)
             {
-                SetLocation(new Point(Location.X + 1, Location.Y));
+                Point newLocation = new((int)(startLocation.X + horizontalStepDistance * i), (int)(startLocation.Y + verticalStepDistance * i));
+                SetLocation(newLocation);
+
                 Thread.Sleep(5);
             }
 
             state = "idle";
-        }
-
-        private void RunAnimation(Animation animation)
-        {
-            while (true)
-            {
-                try
-                {
-                    SetFrame(animation.NextFrame());
-                    Thread.Sleep(100);
-                } 
-                catch (Exception)
-                {
-                    return;
-                }
-            }
         }
 
         private void Form1_Shown_1(object sender, EventArgs e)
@@ -56,6 +58,7 @@ namespace WindowsPetExperiment
         private void AnimationController()
         {
             Animation animationRunning = idleAnimation;
+            Stopwatch animationTimer = new();
 
             while (true)
             {
@@ -70,8 +73,16 @@ namespace WindowsPetExperiment
                     animationRunning = moveAnimation;
                 }
 
-                SetFrame(animationRunning.NextFrame());
-                Thread.Sleep(animationRunning.FrameDelayInMilliseconds);
+                if (animationTimer.ElapsedMilliseconds >= animationRunning.FrameDelayInMilliseconds)
+                {
+                    SetFrame(animationRunning.NextFrame());
+                    animationTimer.Restart();
+                }
+                else if (!animationTimer.IsRunning)
+                {
+                    SetFrame(animationRunning.NextFrame());
+                    animationTimer.Start();
+                }
             }
         }
 
@@ -79,11 +90,11 @@ namespace WindowsPetExperiment
         {
             Thread.Sleep(3000);
 
-            MoveRight();
+            GoToLocation(new Point(100, 100));
 
             Thread.Sleep(3000);
 
-            state = "idle";
+            GoToLocation(new Point(2000, 1000));
         }
 
         private void SetLocation(Point location)
