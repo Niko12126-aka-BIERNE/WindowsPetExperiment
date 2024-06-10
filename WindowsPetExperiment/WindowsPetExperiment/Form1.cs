@@ -1,9 +1,11 @@
 using System.Diagnostics;
+using static WindowsPetExperiment.WindowManager;
 
 namespace WindowsPetExperiment
 {
     public partial class Form1 : Form
     {
+        public static IntPtr PetHandle { get; private set; }
         private Thread animationThread;
         private readonly Animation idleAnimation;
         private readonly Animation moveAnimation;
@@ -12,6 +14,7 @@ namespace WindowsPetExperiment
 
         public Form1()
         {
+            PetHandle = Handle;
             idleAnimation = Animation.FromSpriteSheetAndMetaData(new Bitmap("C:\\Users\\niko1\\OneDrive\\Pictures\\Clownfish_idle.png"), 32 * 3, 300);
             moveAnimation = Animation.FromSpriteSheetAndMetaData(new Bitmap("C:\\Users\\niko1\\OneDrive\\Pictures\\Clownfish_walk.png"), 32 * 3, 100);
             InitializeComponent();
@@ -89,14 +92,32 @@ namespace WindowsPetExperiment
         private void Test()
         {
             Thread.Sleep(3000);
-
             GoToLocation(new Point(100, 100));
 
             Thread.Sleep(3000);
-
             GoToLocation(new Point(2000, 1000));
+
+            Thread.Sleep(3000);
+            GoToLocation(new Point(-1000, 500));
+
+            LINE? line = GetNewFocusedWindowTopLine();
+            while (line is null)
+            {
+                Thread.Sleep(10);
+                line = GetNewFocusedWindowTopLine();
+            }
+
+            if (line is not null)
+            {
+                Debug.WriteLine("############ " + new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y).ToString()); //TODO: Remove this when done...
+
+                GoToLocation(new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y));
+
+                Thread.Sleep(3000);
+            }
         }
 
+        //TODO: Offset location so that the pet is the location and not the top right of the window...
         private void SetLocation(Point location)
         {
             if (InvokeRequired)
