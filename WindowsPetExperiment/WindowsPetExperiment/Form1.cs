@@ -6,11 +6,11 @@ namespace WindowsPetExperiment
     public partial class Form1 : Form
     {
         public static IntPtr PetHandle { get; private set; }
-        private Thread animationThread;
         private readonly Animation idleAnimation;
         private readonly Animation moveAnimation;
         private int direction = -1;
-        private string state = "idle";
+        private string animationState = "idle";
+        private string movementState = "nowhere";
 
         public Form1()
         {
@@ -22,23 +22,23 @@ namespace WindowsPetExperiment
 
         private void GoToLocation(Point location)
         {
-            state = "moving";
+            animationState = "moving";
 
-            direction = Location.X > location.X ? -1 : 1;
+            direction = GetLocation().X > location.X ? -1 : 1;
 
             int speed = 5;
 
-            int horizontalDistance = location.X - Location.X;
-            int verticalDistance = location.Y - Location.Y;
+            int horizontalDistance = location.X - GetLocation().X;
+            int verticalDistance = location.Y - GetLocation().Y;
 
             int totalDistance = (int)Math.Sqrt(Math.Pow(horizontalDistance, 2) + Math.Pow(verticalDistance, 2));
 
             double stepCount = (double)totalDistance / speed;
 
-            double horizontalStepDistance = (double)(location.X - Location.X) / stepCount;
-            double verticalStepDistance = (double)(location.Y - Location.Y) / stepCount;
+            double horizontalStepDistance = (location.X - GetLocation().X) / stepCount;
+            double verticalStepDistance = (location.Y - GetLocation().Y) / stepCount;
 
-            Point startLocation = Location;
+            Point startLocation = GetLocation();
             for (int i = 1; i <= stepCount; i++)
             {
                 Point newLocation = new((int)(startLocation.X + horizontalStepDistance * i), (int)(startLocation.Y + verticalStepDistance * i));
@@ -47,13 +47,13 @@ namespace WindowsPetExperiment
                 Thread.Sleep(5);
             }
 
-            state = "idle";
+            animationState = "idle";
         }
 
         private void Form1_Shown_1(object sender, EventArgs e)
         {
-            animationThread = new Thread(AnimationController);
-            animationThread.Start();
+            new Thread(AnimationController).Start();
+            new Thread(MovementController).Start();
 
             new Thread(Test).Start();
         }
@@ -65,12 +65,12 @@ namespace WindowsPetExperiment
 
             while (true)
             {
-                if (state.Equals("idle") && animationRunning != idleAnimation)
+                if (animationState.Equals("idle") && animationRunning != idleAnimation)
                 {
                     animationRunning.Reset();
                     animationRunning = idleAnimation;
                 }
-                else if (state.Equals("moving") && animationRunning != moveAnimation)
+                else if (animationState.Equals("moving") && animationRunning != moveAnimation)
                 {
                     animationRunning.Reset();
                     animationRunning = moveAnimation;
@@ -89,45 +89,100 @@ namespace WindowsPetExperiment
             }
         }
 
-        private void Test()
+        private void MovementController()
         {
-            Thread.Sleep(3000);
-            GoToLocation(new Point(100, 100));
-
-            Thread.Sleep(3000);
-            GoToLocation(new Point(2000, 1000));
-
-            Thread.Sleep(3000);
-            GoToLocation(new Point(-1000, 500));
-
-            LINE? line = GetNewFocusedWindowTopLine();
-            while (line is null)
+            while (true)
             {
-                Thread.Sleep(10);
-                line = GetNewFocusedWindowTopLine();
-            }
+                switch (movementState)
+                {
+                    case "nowhere":
+                        animationState = "idle";
+                        break;
 
-            if (line is not null)
-            {
-                Debug.WriteLine("############ " + new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y).ToString()); //TODO: Remove this when done...
+                    case "mouse":
+                        GoTowardsMouse();
+                        break;
 
-                GoToLocation(new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y));
+                    case "focusedWindow":
+                        GoTowardsFocusedWindow();
+                        break;
+                }
 
-                Thread.Sleep(3000);
+                Thread.Sleep(5);
             }
         }
 
-        //TODO: Offset location so that the pet is the location and not the top right of the window...
+        private void GoTowardsFocusedWindow()
+        {
+            LINE? line = GetNewFocusedWindowTopLine();
+            if (line is not null)
+            {
+                GoTowardsLocation(new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y));
+            }
+        }
+
+        private void GoTowardsLocation(Point location)
+        {
+            if (location.Equals(GetLocation()))
+            {
+                animationState = "idle";
+                return;
+            }
+
+            animationState = "moving";
+
+            int speed = 5;
+
+            Point directionVector = new(location.X - GetLocation().X, location.Y - GetLocation().Y);
+            double magnitude = Math.Sqrt(Math.Pow(directionVector.X, 2) + Math.Pow(directionVector.Y, 2));
+
+            if (magnitude <= speed)
+            {
+                SetLocation(location);
+                return;
+            }
+
+            (double normalizedX, double normalizedY) = (directionVector.X / magnitude, directionVector.Y / magnitude);
+
+            Point newLocation = new(GetLocation().X + (int)(normalizedX * speed), GetLocation().Y + (int)(normalizedY * speed));
+
+            SetLocation(newLocation);
+        }
+
+        private void Test()
+        {
+            Thread.Sleep(3000);
+
+            movementState = "mouse";
+            Thread.Sleep(10000);
+
+            movementState = "focusedWindow";
+            Thread.Sleep(10000);
+
+            movementState = "nowhere";
+        }
+
+        private void GoTowardsMouse()
+        {
+            Point mouseLocation = MouseManager.GetMouseLocation();
+            GoTowardsLocation(mouseLocation);
+        }
+
         private void SetLocation(Point location)
         {
             if (InvokeRequired)
             {
-                Invoke(() => { Location = location; });
+                Invoke(() => { Location = new Point(location.X - 32 * 3 / 2, location.Y - 32 * 3); });
             }
             else
             {
-                Location = location;
+                Location = new Point(location.X - 32 * 3 / 2, location.Y - 32 * 3);
             }
+        }
+
+        private Point GetLocation()
+        {
+            return new Point(Location.X + 32 * 3 / 2, Location.Y + 32 * 3);
         }
 
         private void SetFrame(Bitmap frame)

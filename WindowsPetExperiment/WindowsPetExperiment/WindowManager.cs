@@ -13,8 +13,6 @@ namespace WindowsPetExperiment
 {
     internal class WindowManager
     {
-        public static IntPtr FocusedWindowPtr { get; private set; }
-
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
@@ -52,13 +50,6 @@ namespace WindowsPetExperiment
             {
                 return null;
             }
-
-            if (focusedWindowPtr == FocusedWindowPtr)
-            {
-                return null;
-            }
-
-            FocusedWindowPtr = focusedWindowPtr;
 
             if (!IsWindowVisible(focusedWindowPtr) || IsIconic(focusedWindowPtr))
             {
