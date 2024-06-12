@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -37,6 +38,11 @@ namespace WindowsPetExperiment
             }
             else if (e.Button == MouseButtons.Right)
             {
+                if (!Size.Equals(pictureBox1.Image.Size))
+                {
+                    Size = pictureBox1.Image.Size;
+                }
+
                 StayAtHome = !StayAtHome;
             }
         }

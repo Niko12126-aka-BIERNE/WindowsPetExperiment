@@ -54,6 +54,7 @@
             Controls.Add(pictureBox1);
             FormBorderStyle = FormBorderStyle.None;
             Name = "Home";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Home";
             TopMost = true;
             TransparencyKey = SystemColors.Control;

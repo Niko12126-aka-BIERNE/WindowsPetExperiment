@@ -95,7 +95,7 @@ namespace WindowsPetExperiment
         private void GoTowardsHome(int pixelsPerSec)
         {
             LINE line = GetTopLine(HomeHandle);
-            GoTowardsLocation(new Point((line.Point1.X + line.Point2.X) / 2, line.Point1.Y), pixelsPerSec); //Offset this so it sits on top of the home sprite... not the window
+            GoTowardsLocation(new Point((line.Point1.X + line.Point2.X) / 2, line.Point1.Y), pixelsPerSec);
         }
 
         private void GoTowardsFocusedWindow(int pixelsPerSec)
