@@ -11,43 +11,15 @@ namespace WindowsPetExperiment
         private int direction = -1;
         private string animationState = "idle";
         private string movementState = "nowhere";
+        public static IntPtr HomeHandle { get; private set; }
 
-        public Form1()
+        public Form1(IntPtr homeHandle)
         {
+            HomeHandle = homeHandle;
             PetHandle = Handle;
             idleAnimation = Animation.FromSpriteSheetAndMetaData(new Bitmap("C:\\Users\\niko1\\OneDrive\\Pictures\\Clownfish_idle.png"), 32 * 3, 300);
             moveAnimation = Animation.FromSpriteSheetAndMetaData(new Bitmap("C:\\Users\\niko1\\OneDrive\\Pictures\\Clownfish_walk.png"), 32 * 3, 100);
             InitializeComponent();
-        }
-
-        private void GoToLocation(Point location)
-        {
-            animationState = "moving";
-
-            direction = GetLocation().X > location.X ? -1 : 1;
-
-            int speed = 5;
-
-            int horizontalDistance = location.X - GetLocation().X;
-            int verticalDistance = location.Y - GetLocation().Y;
-
-            int totalDistance = (int)Math.Sqrt(Math.Pow(horizontalDistance, 2) + Math.Pow(verticalDistance, 2));
-
-            double stepCount = (double)totalDistance / speed;
-
-            double horizontalStepDistance = (location.X - GetLocation().X) / stepCount;
-            double verticalStepDistance = (location.Y - GetLocation().Y) / stepCount;
-
-            Point startLocation = GetLocation();
-            for (int i = 1; i <= stepCount; i++)
-            {
-                Point newLocation = new((int)(startLocation.X + horizontalStepDistance * i), (int)(startLocation.Y + verticalStepDistance * i));
-                SetLocation(newLocation);
-
-                Thread.Sleep(5);
-            }
-
-            animationState = "idle";
         }
 
         private void Form1_Shown_1(object sender, EventArgs e)
@@ -91,8 +63,18 @@ namespace WindowsPetExperiment
 
         private void MovementController()
         {
+            int speedInPixelsPerSec = 1000;
+
             while (true)
             {
+                Thread.Sleep(5);
+
+                if (Home.StayAtHome)
+                {
+                    GoTowardsHome(speedInPixelsPerSec);
+                    continue;
+                }
+
                 switch (movementState)
                 {
                     case "nowhere":
@@ -100,28 +82,32 @@ namespace WindowsPetExperiment
                         break;
 
                     case "mouse":
-                        GoTowardsMouse();
+                        GoTowardsMouse(speedInPixelsPerSec);
                         break;
 
                     case "focusedWindow":
-                        GoTowardsFocusedWindow();
+                        GoTowardsFocusedWindow(speedInPixelsPerSec);
                         break;
                 }
-
-                Thread.Sleep(5);
             }
         }
 
-        private void GoTowardsFocusedWindow()
+        private void GoTowardsHome(int pixelsPerSec)
+        {
+            LINE line = GetTopLine(HomeHandle);
+            GoTowardsLocation(new Point((line.Point1.X + line.Point2.X) / 2, line.Point1.Y), pixelsPerSec); //Offset this so it sits on top of the home sprite... not the window
+        }
+
+        private void GoTowardsFocusedWindow(int pixelsPerSec)
         {
             LINE? line = GetNewFocusedWindowTopLine();
             if (line is not null)
             {
-                GoTowardsLocation(new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y));
+                GoTowardsLocation(new Point((line.Value.Point1.X + line.Value.Point2.X) / 2, line.Value.Point1.Y), pixelsPerSec);
             }
         }
 
-        private void GoTowardsLocation(Point location)
+        private void GoTowardsLocation(Point location, int pixelsPerSec)
         {
             if (location.Equals(GetLocation()))
             {
@@ -130,8 +116,9 @@ namespace WindowsPetExperiment
             }
 
             animationState = "moving";
+            direction = GetLocation().X > location.X ? -1 : 1;
 
-            int speed = 5;
+            int speed = pixelsPerSec / 200;
 
             Point directionVector = new(location.X - GetLocation().X, location.Y - GetLocation().Y);
             double magnitude = Math.Sqrt(Math.Pow(directionVector.X, 2) + Math.Pow(directionVector.Y, 2));
@@ -144,7 +131,7 @@ namespace WindowsPetExperiment
 
             (double normalizedX, double normalizedY) = (directionVector.X / magnitude, directionVector.Y / magnitude);
 
-            Point newLocation = new(GetLocation().X + (int)(normalizedX * speed), GetLocation().Y + (int)(normalizedY * speed));
+            Point newLocation = new(GetLocation().X + (normalizedX * speed).Round(), GetLocation().Y + (normalizedY * speed).Round());
 
             SetLocation(newLocation);
         }
@@ -162,10 +149,10 @@ namespace WindowsPetExperiment
             movementState = "nowhere";
         }
 
-        private void GoTowardsMouse()
+        private void GoTowardsMouse(int pixelsPerSec)
         {
             Point mouseLocation = MouseManager.GetMouseLocation();
-            GoTowardsLocation(mouseLocation);
+            GoTowardsLocation(mouseLocation, pixelsPerSec);
         }
 
         private void SetLocation(Point location)
@@ -204,6 +191,14 @@ namespace WindowsPetExperiment
             {
                 pictureBox1.Image = frame;
             }
+        }
+    }
+
+    public static class RoundableDouble
+    {
+        public static int Round(this double number)
+        {
+            return number - Math.Round(number) == 0.5 ? (int)Math.Ceiling(number) : (int)Math.Round(number);
         }
     }
 }

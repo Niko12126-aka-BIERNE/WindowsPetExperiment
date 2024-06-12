@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Numerics;
 using static WindowsPetExperiment.WindowManager;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace WindowsPetExperiment
 {
@@ -46,7 +47,7 @@ namespace WindowsPetExperiment
         {
             IntPtr focusedWindowPtr = GetForegroundWindow();
 
-            if (focusedWindowPtr == Form1.PetHandle)
+            if (focusedWindowPtr == Form1.PetHandle || focusedWindowPtr == Form1.HomeHandle)
             {
                 return null;
             }
@@ -56,7 +57,12 @@ namespace WindowsPetExperiment
                 return null;
             }
 
-            GetWindowRect(focusedWindowPtr, out RECT focusedWindowRectangle);
+            return GetTopLine(focusedWindowPtr);
+        }
+
+        public static LINE GetTopLine(IntPtr homeHandle)
+        {
+            GetWindowRect(homeHandle, out RECT focusedWindowRectangle);
 
             LINE topLine = new(new Point(focusedWindowRectangle.Left, focusedWindowRectangle.Top), new Point(focusedWindowRectangle.Right, focusedWindowRectangle.Top));
 
