@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Numerics;
-using static WindowsPetExperiment.WindowManager;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
+﻿using System.Runtime.InteropServices;
 
 namespace WindowsPetExperiment
 {
@@ -24,10 +14,11 @@ namespace WindowsPetExperiment
         private static extern bool IsWindowVisible(IntPtr hWnd);
 
         [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool IsIconic(IntPtr hWnd); // Check if window is minimized
 
-        // Define the RECT structure to represent a rectangle
+        [DllImport("user32.dll")]
+        private static extern bool IsZoomed(IntPtr hWnd); // Check if window is maximized
+
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
         {
@@ -48,6 +39,11 @@ namespace WindowsPetExperiment
             IntPtr focusedWindowPtr = GetForegroundWindow();
 
             if (focusedWindowPtr == Form1.PetHandle || focusedWindowPtr == Form1.HomeHandle)
+            {
+                return null;
+            }
+
+            if (IsZoomed(focusedWindowPtr))
             {
                 return null;
             }
